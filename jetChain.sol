@@ -1,5 +1,8 @@
 pragma solidity ^0.5.3;
 
+// struct for flights skeleton
+
+// mappings for flights offers and requests
 
 // check and edit below interface
 interface jetCoin {
