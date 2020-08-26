@@ -6,20 +6,22 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v2.5
 import "https://gist.githubusercontent.com/MajdT51/c035eaea5302476b263b2c5a38dd2968/raw/7927c818418667a4d1f561d00a5911440b584a6f/AddrArrayLib.sol";
 import "./jetChainAuction.sol";
 
-contract flyToken is ERC721Full, Ownable {
-
+contract flyToken is ERC721Full, Ownable, FlightAuction {
+    
     constructor() ERC721Full("flyToken", "FLY") public { }
+    address payable marketAddress = msg.sender;
 
     using Counters for Counters.Counter;
     Counters.Counter token_ids;
+    Counters.Counter request_ids;
+    Counters.Counter offer_ids;
 
-    address payable marketAddress = msg.sender;
-    // list of client addresses
-    // mapping(address => FlightRequest) clientAddresses;
-    // list of charter addresses
     address payable clientAddress;
-    address payable charterAddress;
+    mapping(address => bool) isClient;
 
+    address payable charterAddress;
+    mapping(address => bool) isCharter;
+    
     struct FlightRequest {
         string origin;
         string destination;
@@ -43,90 +45,99 @@ contract flyToken is ERC721Full, Ownable {
     }
 
     modifier onlyCharter() {
-        require(msg.sender == charterAddress, "permission denied");
+        require(isCharter[msg.sender] == true, "permission denied");
         _;
-    } //fix
+    }
 
     modifier onlyClient() {
-        require(msg.sender == clientAddress, "permission denied");
+        require(isClient[msg.sender] == true, "permission denied");
         _;
-    } // fix
+    }
 
-    mapping(uint => FlightRequest) public FlightRequests;
-    mapping(uint => FlightOffer) public FlightOffers;
+    mapping(uint => FlightRequest) public FlightRequests; //consolidate?
+    mapping(uint => FlightOffer) public FlightOffers;     //consolidaet?
 
-    event flightRequest(
-        uint token_id,
+    event flightRequestEvent(
+        uint request_id,
         uint date,
         uint price,
         uint numberOfPassengers,
         string origin,
-        string destination,
-        string report_uri
+        string destination
+        // string report_uri
     );
     
-    event flightConfirmation(
+    event flightConfirmationEvent(
         uint token_id,
         uint date,
         uint price,
         uint numberOfPassengers,
         string origin,
-        string destination,
-        string report_uri
+        string destination
+        // string report_uri
     );
 
-    event flightOffer(
-        uint token_id,
+    event flightOfferEvent(
+        uint offer_id,
         uint date,
         uint price,
         uint numberOfPassengers,
         string origin,
-        string destination,
+        string destination
+        // string report_uri
+    );
+
+    event cancelFlightOfferEvent(
+        uint flight_id,
         string report_uri
     );
 
-    event cancelFlightOffer(
-        uint token_id,
-        string report_uri
-    );
-
-    event cancelFlightRequest(
-        uint token_id,
+    event cancelFlightRequestEvent(
+        uint request_id,
         string report_uri
     );
 
    // client creates flight request
     function createFlightRequest(
-        address payable clientAddress, //should append msg.sender to list of addresses
         string memory origin,
         string memory destination,
-        uint price,
         uint numberOfPassengers,
         uint date,
         string memory token_uri
         )
         public payable returns(uint) {
+        request_ids.increment();
+        uint request_id = request_ids.current();
         token_ids.increment();
         uint token_id = token_ids.current();
 
-        _mint(clientAddress, token_id);
-        _setTokenURI(token_id, token_uri);
+        isClient[msg.sender] = true;
+        
+        _mint(msg.sender, token_id);
+        _setTokenURI(request_id, token_uri);
 
-        FlightRequests[token_id] = FlightRequest(
+        FlightRequests[request_id] = FlightRequest(
             origin,
             destination,
-            price = msg.value, //check if correct
+            msg.value, //check if correct
             date,
             numberOfPassengers
             );
+        emit flightRequestEvent(
+            request_id,
+            date,
+            msg.value,
+            numberOfPassengers,
+            origin,
+            destination
+            );
 
-        return token_id;
+        return request_id;
 
     }
 
     // charter creates a flight offer (for empty leg)
     function createFlightOffer(
-        address charter,
         string memory origin,
         string memory destination,
         uint numberOfPassengers,
@@ -136,56 +147,54 @@ contract flyToken is ERC721Full, Ownable {
         string memory token_uri
         )
         public returns(uint) {
-        // - price to be paid:
-        //     - if fixed price --> price in tokens
-        //     - if auction:
-        //         - set minimum price (optional)
-        //         - set max number of bids
-        // set charter address to msg.sender (or original address)
+        offer_ids.increment();
+        uint offer_id = offer_ids.current();
         token_ids.increment();
         uint token_id = token_ids.current();
+        
+        isCharter[msg.sender] = true;
+        
+        _mint(msg.sender, token_id);
+        _setTokenURI(offer_id, token_uri);
 
-        _mint(charter, token_id);
-        _setTokenURI(token_id, token_uri);
-
-        _setTokenURI(token_id, token_uri);
-
-        if (isAuction) {
-            FlightOffers[token_id] = FlightOffer(
-            origin,
-            destination,
-            price, //check if correct
-            isAuction=false,
+        FlightOffers[offer_id] = FlightOffer(
+        origin,
+        destination,
+        price, //check if correct
+        isAuction,
+        date,
+        numberOfPassengers
+        );
+        emit flightOfferEvent(
+            offer_id,
             date,
-            numberOfPassengers
+            price,
+            numberOfPassengers,
+            origin,
+            destination
             );
-
-            return token_id;
+        if (isAuction==false) {
+            return offer_id;
         }
         else {
             // call auction function
-            createAuction(token_id);
+            createAuction(offer_id, 1 days);
         }
-
     }
-
-    function createAuction(uint token_id) public {
-            // auctions[token_id] = new FlightAuction(charterAddress);
-        }
 
     // client confirms flight offered by charter
     function confirmFlightOffer() public payable {
-        // TODO:
-        // set client address to msg.sender (or the original address if this is
-        // called by another contract)
-        // transfer tokens out of msg.address into escrow (?) account
-        // 
+        isClient[msg.sender] = true;
+        // Do we need :: mapping(address => uint) balances;
+        // Should we use a multiplier on the price to pull our fee?
+        // balances[msg.sender] -= price;
+        // balances[marketAddress] += price;
     }
 
-    // charter confirms client flight request
-    function confirmFlightRequest() public {
+    // charter accepts client flight request
+    function acceptFlightRequest(uint request_id) public {
         // TODO:
-        // set charter = msg.sender
+        // set charterAddress = msg.sender
         // transfer tokens from client to escrow (?) account
     }
 
@@ -196,13 +205,6 @@ contract flyToken is ERC721Full, Ownable {
         // transfer tokens back to client
     }
 
-    // client withdraws bid on flight offer
-    function withdrawFlightBid() public onlyClient {
-        // TODO:
-        // allow client to cancel flight bid
-        // return tokens to client
-    }
-
     // charter withdraws offered flight
     function withdrawFlightOffer() public onlyCharter {
         // TODO:
@@ -210,51 +212,50 @@ contract flyToken is ERC721Full, Ownable {
         // any bids by clients need to be revoked and tokens returned
     }
 
-    // client bids on flight offered by charter
-    function bidOnFlight() public payable {
-        // TODO:
-        // allow msg.sender to bidi on flight using msg.value as bid price
-    }
-
     // client views flights offered
-    function viewOfferedFlights() public view {
-        // TODO:
-        // this will be a public function that would list the flight offers
-        // available.
-        // one implementation might be using a counter to display the number of
-        // items in mapping, then a python or JS loop to loop through the mapping
-        // elements (since there's no way to list all elements in a mapping, and
-        // using loops in solidity consumes a lot of gas)
+    function flightOffersNumber() public view returns(uint) {
+        return offer_ids.current();
     }
 
     // charter views flight requests
-    function viewFlightRequests() public view {
-        // TODO:
-        // this will be a public function that would list the flight requests
-        // available.
-        // one implementation might be using a counter to display the number of
-        // items in mapping, then a python or JS loop to loop through the mapping
-        // elements (since there's no way to list all elements in a mapping, and
-        // using loops in solidity consumes a lot of gas)
+    function flightRequestsNumber() public view returns(uint) {
+        return request_ids.current();
     }
 
-    // client confirms that flight has been completed
-    function completeFlight() public onlyClient {
-        // TODO:
-        // this should allow the client to confirm that the flight has been
-        // completed, and transfer the tokens to the charter.
-        // only the client is allowed to run this function
+//RICKY
+    // uint auctionTimeLength;
+
+    mapping(uint => FlightAuction) public auctions;
+
+    function createAuction(uint offer_id, uint auctionTimeLength) internal {
+        auctions[offer_id] = new FlightAuction(charterAddress, auctionTimeLength);
     }
 
-    function acceptFlightBid() public onlyCharter {
-        // TODO:
-        // this should accept the bid on a flight offer
-        // only the charter is allowed to run this function
+    function endAuction(uint offer_id) public onlyCharter {
+        FlightAuction auction = auctions[offer_id];
+        auction.auctionEnd();
+        safeTransferFrom(owner(), auction.highestBidder(), offer_id);
     }
 
-    function withdrawFunds() public {
-        // TODO:
-        // transfer ETH back to charter or client address and destroy tokens
+    function auctionEnded(uint offer_id) public view returns(bool) {
+        FlightAuction auction = auctions[offer_id];
+        return auction.ended();
+    }
+
+    // function highestBid(uint offer_id) public view returns(uint) {
+    //     FlightAuction auction = auctions[offer_id];
+    //     return auction.highestBid();
+    // }
+
+    function pendingReturn(uint offer_id, address sender) public view returns(uint) {
+        FlightAuction auction = auctions[offer_id];
+        return auction.pendingReturn(sender);
+    }
+
+    // client bids on flight offered by charter
+    function bid(uint offer_id) public payable {
+        FlightAuction auction = auctions[offer_id];
+        auction.bid.value(msg.value)(msg.sender);
     }
 
 }
