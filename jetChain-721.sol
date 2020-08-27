@@ -23,20 +23,26 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
     mapping(address => bool) isCharter;
     
     struct FlightRequest {
+        address payable clientAddress;
         string origin;
         string destination;
         uint price; //check if needed
         uint date;
         uint numberOfPassengers;
+        bool confirmed;
+        bool cancelled;
     }
 
     struct FlightOffer {
+        address payable charterAddress;
         string origin;
         string destination;
         uint price; //check if needed
         bool isAuction;
         uint date;
         uint numberOfPassengers;
+        bool sold;
+        bool cancelled;
     }
 
     modifier onlyOwner() {
@@ -87,14 +93,9 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         // string report_uri
     );
 
-    event cancelFlightOfferEvent(
+    event flightCancellationEvent(
         uint flight_id,
-        string report_uri
-    );
-
-    event cancelFlightRequestEvent(
-        uint request_id,
-        string report_uri
+        bool cancelled
     );
 
    // client creates flight request
@@ -117,11 +118,14 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         _setTokenURI(request_id, token_uri);
 
         FlightRequests[request_id] = FlightRequest(
+            msg.sender,
             origin,
             destination,
             msg.value, //check if correct
             date,
-            numberOfPassengers
+            numberOfPassengers,
+            false,
+            false
             );
         emit flightRequestEvent(
             request_id,
@@ -158,12 +162,15 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         _setTokenURI(offer_id, token_uri);
 
         FlightOffers[offer_id] = FlightOffer(
-        origin,
-        destination,
-        price, //check if correct
-        isAuction,
-        date,
-        numberOfPassengers
+            msg.sender,
+            origin,
+            destination,
+            price, //check if correct
+            isAuction,
+            date,
+            numberOfPassengers,
+            false,
+            false
         );
         emit flightOfferEvent(
             offer_id,
@@ -183,33 +190,56 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
     }
 
     // client confirms flight offered by charter
-    function confirmFlightOffer() public payable {
+    function confirmFlightOffer(uint offer_id) public payable {
         isClient[msg.sender] = true;
-        // Do we need :: mapping(address => uint) balances;
-        // Should we use a multiplier on the price to pull our fee?
-        // balances[msg.sender] -= price;
-        // balances[marketAddress] += price;
+        FlightOffers[offer_id].charterAddress.transfer(msg.value);
+        FlightOffers[offer_id].sold = true;
+        
+        emit flightConfirmationEvent(
+            offer_id,
+            FlightOffers[offer_id].date,
+            FlightOffers[offer_id].price,
+            FlightOffers[offer_id].numberOfPassengers,
+            FlightOffers[offer_id].origin,
+            FlightOffers[offer_id].destination
+        );
     }
 
     // charter accepts client flight request
-    function acceptFlightRequest(uint request_id) public {
-        // TODO:
-        // set charterAddress = msg.sender
-        // transfer tokens from client to escrow (?) account
+    function acceptFlightRequest(uint request_id) public payable {
+        isCharter[msg.sender] = true;
+        msg.sender.transfer(msg.value);
+        FlightRequests[request_id].confirmed = true;
+        
+        emit flightConfirmationEvent(
+            request_id,
+            FlightRequests[request_id].date,
+            FlightRequests[request_id].price,
+            FlightRequests[request_id].numberOfPassengers,
+            FlightRequests[request_id].origin,
+            FlightRequests[request_id].destination
+            );
     }
 
     // client withdraws request for flight
-    function withdrawFlightRequest() public onlyClient {
-        // TODO:
-        // allow client to withdraw flight request
-        // transfer tokens back to client
+    function cancelFlightRequest(uint request_id) public payable onlyClient {
+        FlightRequests[request_id].cancelled = true;
+        FlightRequests[request_id].clientAddress.transfer(FlightRequests[request_id].price);
+        
+        emit flightCancellationEvent(
+            request_id,
+            FlightRequests[request_id].cancelled
+            );
     }
 
     // charter withdraws offered flight
-    function withdrawFlightOffer() public onlyCharter {
-        // TODO:
-        // allow charter to cancel flight offer
-        // any bids by clients need to be revoked and tokens returned
+    function cancelFlightOffer(uint offer_id) public onlyCharter {
+        FlightOffers[offer_id].cancelled = true;
+        
+        emit flightCancellationEvent(
+            offer_id,
+            FlightOffers[offer_id].cancelled
+            );
     }
 
     // client views flights offered
@@ -221,21 +251,8 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
     function flightRequestsNumber() public view returns(uint) {
         return request_ids.current();
     }
-
-//RICKY
-    // uint auctionTimeLength;
-
+    
     mapping(uint => FlightAuction) public auctions;
-
-    function createAuction(uint offer_id, uint auctionTimeLength) internal {
-        auctions[offer_id] = new FlightAuction(charterAddress, auctionTimeLength);
-    }
-
-    function endAuction(uint offer_id) public onlyCharter {
-        FlightAuction auction = auctions[offer_id];
-        auction.auctionEnd();
-        safeTransferFrom(owner(), auction.highestBidder(), offer_id);
-    }
 
     function auctionEnded(uint offer_id) public view returns(bool) {
         FlightAuction auction = auctions[offer_id];
@@ -256,6 +273,16 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
     function bid(uint offer_id) public payable {
         FlightAuction auction = auctions[offer_id];
         auction.bid.value(msg.value)(msg.sender);
+    }
+    
+    function endAuction(uint offer_id) public onlyCharter {
+        FlightAuction auction = auctions[offer_id];
+        auction.auctionEnd();
+        safeTransferFrom(owner(), auction.highestBidder(), offer_id);
+    }
+    
+    function createAuction(uint offer_id, uint auctionTimeLength) internal {
+        auctions[offer_id] = new FlightAuction(charterAddress, auctionTimeLength);
     }
 
 }

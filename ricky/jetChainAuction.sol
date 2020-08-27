@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+import "./jetChain-721.sol";
+
 contract FlightAuction {
     address deployer;
     address payable public beneficiary;
@@ -122,4 +124,5 @@ contract FlightAuction {
         // 3. Interaction
         beneficiary.transfer(highestBid);
     }
+
 }
