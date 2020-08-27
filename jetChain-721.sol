@@ -281,7 +281,7 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         safeTransferFrom(owner(), auction.highestBidder(), offer_id);
     }
     
-    function createAuction(uint offer_id, uint auctionTimeLength) internal {
+    function createAuction(uint offer_id) internal {
         auctions[offer_id] = new FlightAuction(charterAddress, auctionTimeLength);
     }
 
