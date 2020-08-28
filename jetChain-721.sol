@@ -5,7 +5,7 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v2.5
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v2.5.0/contracts/ownership/Ownable.sol";
 import "./jetChainAuction.sol";
 
-contract flyToken is ERC721Full, Ownable, FlightAuction {
+contract flyToken is ERC721Full, Ownable {
     
     constructor() ERC721Full("flyToken", "FLY") public { }
     address payable marketAddress = msg.sender;
