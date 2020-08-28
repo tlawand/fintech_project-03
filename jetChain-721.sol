@@ -3,7 +3,6 @@ pragma solidity ^0.5.0;
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v2.5.0/contracts/token/ERC721/ERC721Full.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v2.5.0/contracts/drafts/Counters.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v2.5.0/contracts/ownership/Ownable.sol";
-import "https://gist.githubusercontent.com/MajdT51/c035eaea5302476b263b2c5a38dd2968/raw/7927c818418667a4d1f561d00a5911440b584a6f/AddrArrayLib.sol";
 import "./jetChainAuction.sol";
 
 contract flyToken is ERC721Full, Ownable, FlightAuction {
@@ -26,7 +25,7 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         address payable clientAddress;
         string origin;
         string destination;
-        uint price; //check if needed
+        uint price;
         uint date;
         uint numberOfPassengers;
         bool confirmed;
@@ -37,7 +36,7 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         address payable charterAddress;
         string origin;
         string destination;
-        uint price; //check if needed
+        uint price;
         bool isAuction;
         uint date;
         uint numberOfPassengers;
@@ -70,7 +69,6 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         uint numberOfPassengers,
         string origin,
         string destination
-        // string report_uri
     );
     
     event flightConfirmationEvent(
@@ -80,7 +78,6 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         uint numberOfPassengers,
         string origin,
         string destination
-        // string report_uri
     );
 
     event flightOfferEvent(
@@ -90,7 +87,6 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         uint numberOfPassengers,
         string origin,
         string destination
-        // string report_uri
     );
 
     event flightCancellationEvent(
@@ -127,6 +123,7 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
             false,
             false
             );
+        
         emit flightRequestEvent(
             request_id,
             date,
@@ -137,7 +134,6 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
             );
 
         return request_id;
-
     }
 
     // charter creates a flight offer (for empty leg)
@@ -259,10 +255,10 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         return auction.ended();
     }
 
-    // function highestBid(uint offer_id) public view returns(uint) {
-    //     FlightAuction auction = auctions[offer_id];
-    //     return auction.highestBid();
-    // }
+    function viewHighestBid(uint offer_id) public view returns(uint) {
+        FlightAuction auction = auctions[offer_id];
+        return auction.highestBid();
+    }
 
     function pendingReturn(uint offer_id, address sender) public view returns(uint) {
         FlightAuction auction = auctions[offer_id];
@@ -275,14 +271,14 @@ contract flyToken is ERC721Full, Ownable, FlightAuction {
         auction.bid.value(msg.value)(msg.sender);
     }
     
+    function createAuction(uint offer_id, uint auctionTimeLength) internal {
+        auctions[offer_id] = new FlightAuction(charterAddress, auctionTimeLength);
+    }
+    
     function endAuction(uint offer_id) public onlyCharter {
         FlightAuction auction = auctions[offer_id];
         auction.auctionEnd();
         safeTransferFrom(owner(), auction.highestBidder(), offer_id);
-    }
-    
-    function createAuction(uint offer_id) internal {
-        auctions[offer_id] = new FlightAuction(charterAddress, auctionTimeLength);
     }
 
 }

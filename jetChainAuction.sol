@@ -1,8 +1,15 @@
 pragma solidity ^0.5.0;
 
+import "./jetChain-721.sol";
+
 contract FlightAuction {
     address deployer;
     address payable public beneficiary;
+    uint public auctionEndTime;
+
+    // Times are either absolute unix timestamps (seconds since 1970-01-01)
+    // or time periods in seconds.
+    
 
     // Current state of the auction.
     address public highestBidder;
@@ -27,11 +34,14 @@ contract FlightAuction {
     /// Create a simple auction with `_biddingTime`
     /// seconds bidding time on behalf of the
     /// beneficiary address `_beneficiary`.
+    
     constructor(
-        address payable _beneficiary
+        address payable _beneficiary,
+        uint _biddingTime
     ) public {
         deployer = msg.sender; // set as the MartianMarket
         beneficiary = _beneficiary;
+        auctionEndTime = now + _biddingTime;
     }
 
     /// Bid on the auction with the value sent
@@ -47,6 +57,9 @@ contract FlightAuction {
         );
 
         require(!ended, "auctionEnd has already been called.");
+        
+        require(now <= auctionEndTime, "Auction has ended");
+
 
         if (highestBid != 0) {
             // Sending back the money by simply using
@@ -62,7 +75,7 @@ contract FlightAuction {
     }
 
     /// Withdraw a bid that was overbid.
-    function withdraw() public returns (bool) {
+    function withdrawFlightBid() external returns (bool) {
         uint amount = pendingReturns[msg.sender];
         if (amount > 0) {
             // It is important to set this to zero because the recipient
@@ -100,6 +113,7 @@ contract FlightAuction {
         // external contracts.
 
         // 1. Conditions
+        require(now >= auctionEndTime,"auction is not end yet");
         require(!ended, "auctionEnd has already been called.");
         require(msg.sender == deployer, "You are not the auction deployer!");
 
@@ -110,4 +124,5 @@ contract FlightAuction {
         // 3. Interaction
         beneficiary.transfer(highestBid);
     }
+
 }
