@@ -75,7 +75,7 @@ contract FlightAuction {
     }
 
     /// Withdraw a bid that was overbid.
-    function withdrawFlightBid() external returns (bool) {
+    function withdrawFlightBid() public returns (bool) {
         uint amount = pendingReturns[msg.sender];
         if (amount > 0) {
             // It is important to set this to zero because the recipient
