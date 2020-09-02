@@ -2,7 +2,7 @@
 
 ## Team
 
-Toufic Lawand, Shelly Shtuauber, Ricky Gunawan, & Ian Walter
+Toufic Lawand, Shelly-Shaked Shtauber, Ricky Gunawan, & Ian Walter
 
 ## Objective
 
