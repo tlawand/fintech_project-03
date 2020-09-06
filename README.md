@@ -20,9 +20,6 @@ Develop a blockchain marketplace to list or request private jet flights around t
 ## Presentation link
 https://docs.google.com/presentation/d/1UOQi4MT5ch6DPZhlKcVeMhZxaWk1mp2pdgOC_yFNPfM/edit#slide=id.p
 
-## Objective and motivation
-To develop jetChain, the premier private charter reservation system, the first of its kind built on blockchain contracts.
-
 ## How jetChain works
 jetChain acts as a marketplace, connecting private plane charters to clients by offering two options for booking flights.
 
