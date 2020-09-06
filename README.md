@@ -2,7 +2,7 @@
 
 ## Team
 
-Toufic Lawand, Shelly Shtuauber, Ricky Gunawan, & Ian Walter
+Toufic Lawand, Shelly-Shaked Shtauber, Ricky Gunawan, & Ian Walter
 
 ## Objective
 
@@ -16,6 +16,9 @@ Develop a blockchain marketplace to list or request private jet flights around t
 - Anonymity
 - Scalability
 - Enable efficient data collection for data analysis
+
+## Presentation link
+https://docs.google.com/presentation/d/1UOQi4MT5ch6DPZhlKcVeMhZxaWk1mp2pdgOC_yFNPfM/edit#slide=id.p
 
 ## Timeline
 
