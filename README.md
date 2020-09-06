@@ -20,6 +20,20 @@ Develop a blockchain marketplace to list or request private jet flights around t
 ## Presentation link
 https://docs.google.com/presentation/d/1UOQi4MT5ch6DPZhlKcVeMhZxaWk1mp2pdgOC_yFNPfM/edit#slide=id.p
 
+## Objective and motivation
+To develop jetChain, the premier private charter reservation system, the first of its kind built on blockchain contracts.
+
+## How jetChain works
+jetChain acts as a marketplace, connecting private plane charters to clients by offering two options for booking flights.
+
+Clients requesting flights from an origin to a destination at a price they set
+Charters offering empty legs or flights of their own at a fixed price or through an auction
+
+jetChain takes a small fee for each confirmed request or offer.
+
+## Deployed contract
+You can access the deployed contract on the kovan network at this address: 0x635875E4f24A3976C6F763036d25DDaA28F874aa
+
 ## Timeline
 
 _Thursday 8/20_
